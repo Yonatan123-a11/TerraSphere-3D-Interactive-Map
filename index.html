@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TerraSphere 3D - Penjelajah Bumi Jarak Jauh & Dekat</title>
+  
+  <!-- MapLibre GL JS v5.24.0 (Mendukung Proyeksi 3D Spherical Globe Asli) -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Container Peta Utama -->
+  <div id="map"></div>
+
+  <!-- Starfield Canvas Effect untuk Luar Angkasa -->
+  <canvas id="stars-canvas"></canvas>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-nav">
+    <div class="brand">
+      <div class="brand-icon">
+        <i data-lucide="globe"></i>
+      </div>
+      <div class="brand-text">
+        <h1 class="brand-title">TerraSphere <span>3D</span></h1>
+        <p class="brand-subtitle">Penjelajah Bumi Global & Lokal</p>
+      </div>
+    </div>
+
+    <!-- Search Bar with Live Geocoding -->
+    <div class="search-wrapper">
+      <div class="search-box">
+        <i data-lucide="search" class="search-icon"></i>
+        <input 
+          type="text" 
+          id="search-input" 
+          placeholder="Cari lokasi, kota, landmark, atau koordinat..." 
+          autocomplete="off"
+        >
+        <button id="clear-search" class="clear-btn hidden" title="Hapus">
+          <i data-lucide="x"></i>
+        </button>
+        <div id="search-spinner" class="spinner hidden"></div>
+      </div>
+      <!-- Autocomplete Dropdown -->
+      <div id="search-results" class="search-dropdown hidden"></div>
+    </div>
+
+    <!-- Quick Action Bar -->
+    <div class="quick-actions">
+      <!-- Toggle Globe 3D / Peta Datar -->
+      <button id="toggle-projection-btn" class="nav-btn active" title="Ubah Proyeksi: Bola Bumi 3D / Peta Datar">
+        <i data-lucide="globe-2"></i>
+        <span class="btn-label">Globe 3D</span>
+      </button>
+
+      <!-- Auto Rotate Toggle (Aktif Default) -->
+      <button id="toggle-spin-btn" class="nav-btn active" title="Nyalakan/Matikan Rotasi Otomatis Bumi">
+        <i data-lucide="orbit"></i>
+        <span class="btn-label">Putar Bumi</span>
+      </button>
+
+      <!-- Layer Menu Toggle -->
+      <button id="layer-menu-btn" class="nav-btn" title="Pilihan Lapisan Citra Peta">
+        <i data-lucide="layers"></i>
+        <span class="btn-label">Lapisan</span>
+      </button>
+
+      <!-- Presets Drawer Toggle -->
+      <button id="presets-menu-btn" class="nav-btn" title="Koleksi Tempat: Jarak Jauh & Jarak Dekat">
+        <i data-lucide="compass"></i>
+        <span class="btn-label">Destinasi</span>
+      </button>
+
+      <!-- Disasters Monitor Button -->
+      <button id="disaster-menu-btn" class="nav-btn disaster-nav-btn highlight-danger-btn" title="Peta Bencana Alam Dunia (Gempa, Tsunami, Gunung Api, Badai)">
+        <i data-lucide="flame"></i>
+        <span class="btn-label">Bencana Alam</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Layer Selection Modal/Drawer -->
+  <div id="layer-drawer" class="floating-card layer-card hidden">
+    <div class="card-header">
+      <div class="card-title">
+        <i data-lucide="layers"></i>
+        <span>Pilihan Lapisan Peta</span>
+      </div>
+      <button class="close-card-btn" id="close-layer-card"><i data-lucide="x"></i></button>
+    </div>
+    
+    <div class="card-body">
+      <div class="layer-options-grid">
+        <button class="layer-option-btn active" data-layer="satellite">
+          <div class="layer-preview preview-sat"></div>
+          <div class="layer-info">
+            <span class="layer-name">Satelit HD Realistis</span>
+            <span class="layer-desc">Citra resolusi tinggi dari antariksa & jalanan</span>
+          </div>
+        </button>
+
+        <button class="layer-option-btn" data-layer="osm">
+          <div class="layer-preview preview-osm"></div>
+          <div class="layer-info">
+            <span class="layer-name">Peta Jalan (OSM)</span>
+            <span class="layer-desc">Nama jalan, batas wilayah, & tata kota jelas</span>
+          </div>
+        </button>
+
+        <button class="layer-option-btn" data-layer="dark">
+          <div class="layer-preview preview-dark"></div>
+          <div class="layer-info">
+            <span class="layer-name">Mode Malam (Dark)</span>
+            <span class="layer-desc">Visual kosmik gelap & siluet benua</span>
+          </div>
+        </button>
+
+        <button class="layer-option-btn" data-layer="topo">
+          <div class="layer-preview preview-topo"></div>
+          <div class="layer-info">
+            <span class="layer-name">Relief Topografi</span>
+            <span class="layer-desc">Kontur ketinggian, pegunungan & lembah</span>
+          </div>
+        </button>
+      </div>
+
+      <div class="layer-toggles">
+        <label class="toggle-checkbox">
+          <input type="checkbox" id="toggle-labels-chk" checked>
+          <span class="checkmark"></span>
+          <span class="toggle-text">Tampilkan Label Nama Kota & Tempat</span>
+        </label>
+        <label class="toggle-checkbox">
+          <input type="checkbox" id="toggle-roads-chk" checked>
+          <span class="checkmark"></span>
+          <span class="toggle-text">Tampilkan Garis Batas & Jaringan Jalan</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Presets Panel (Destinasi Jarak Jauh & Jarak Dekat) -->
+  <aside id="presets-panel" class="presets-panel hidden">
+    <div class="panel-header">
+      <div class="panel-title">
+        <i data-lucide="map-pin"></i>
+        <span>Katalog Destinasi</span>
+      </div>
+      <button class="close-card-btn" id="close-presets-btn"><i data-lucide="x"></i></button>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="presets-tabs">
+      <button class="preset-tab active" data-tab="far">
+        <i data-lucide="telescope"></i> Jarak Jauh (Antariksa)
+      </button>
+      <button class="preset-tab" data-tab="mid">
+        <i data-lucide="globe"></i> Jarak Menengah (Benua)
+      </button>
+      <button class="preset-tab" data-tab="close">
+        <i data-lucide="zoom-in"></i> Jarak Dekat (Landmark)
+      </button>
+    </div>
+
+    <div class="presets-list-container" id="presets-list">
+      <!-- Diisi secara dinamis oleh JavaScript -->
+    </div>
+  </aside>
+
+  <!-- Disaster Explorer Panel -->
+  <aside id="disaster-panel" class="disaster-panel hidden">
+    <div class="panel-header disaster-header">
+      <div class="panel-title">
+        <i data-lucide="flame" class="text-danger"></i>
+        <span>Peta Bencana Alam Dunia</span>
+      </div>
+      <button class="close-card-btn" id="close-disaster-btn"><i data-lucide="x"></i></button>
+    </div>
+
+    <!-- Live USGS Feed & Ring of Fire Quick Controls -->
+    <div class="disaster-toggles-bar">
+      <div class="disaster-toggle-row">
+        <label class="toggle-checkbox">
+          <input type="checkbox" id="toggle-usgs-live" checked>
+          <span class="checkmark red-check"></span>
+          <span class="toggle-text font-bold">Gempa Terkini Real-Time (USGS Live)</span>
+        </label>
+        <span class="badge-count" id="usgs-count-badge">Memuat data...</span>
+      </div>
+
+      <div class="disaster-toggle-row">
+        <label class="toggle-checkbox">
+          <input type="checkbox" id="toggle-ring-of-fire" checked>
+          <span class="checkmark orange-check"></span>
+          <span class="toggle-text font-bold">Cincin Api Pasifik (Ring of Fire)</span>
+        </label>
+        <span class="badge-sub">Zona 90% Gempa Bumi</span>
+      </div>
+    </div>
+
+    <!-- Category Filter Tabs -->
+    <div class="disaster-filter-tabs">
+      <button class="disaster-filter-btn active" data-filter="all">Semua</button>
+      <button class="disaster-filter-btn" data-filter="tsunami">🌊 Tsunami</button>
+      <button class="disaster-filter-btn" data-filter="earthquake">💥 Gempa</button>
+      <button class="disaster-filter-btn" data-filter="volcano">🌋 Gunung Api</button>
+      <button class="disaster-filter-btn" data-filter="storm">🌀 Badai</button>
+    </div>
+
+    <!-- Disaster Items List -->
+    <div class="disaster-list-container" id="disaster-list">
+      <!-- Diisi secara dinamis oleh JavaScript -->
+    </div>
+  </aside>
+
+  <!-- Interactive Altitude Zoom Slider (HUD Kanan) -->
+  <div class="zoom-tier-bar">
+    <div class="zoom-tier-title">Skala Jarak</div>
+    <div class="tier-buttons">
+      <button class="tier-btn" data-tier="space" title="Luar Angkasa (Orbit > 10.000 km)">
+        <i data-lucide="rocket"></i>
+        <span class="tier-text">Antariksa</span>
+      </button>
+      <button class="tier-btn" data-tier="continent" title="Benua (Orbit ~ 4.000 km)">
+        <i data-lucide="globe"></i>
+        <span class="tier-text">Benua</span>
+      </button>
+      <button class="tier-btn" data-tier="country" title="Negara & Wilayah (~ 600 km)">
+        <i data-lucide="map"></i>
+        <span class="tier-text">Negara</span>
+      </button>
+      <button class="tier-btn" data-tier="city" title="Kota & Kawasan (~ 25 km)">
+        <i data-lucide="building-2"></i>
+        <span class="tier-text">Kota</span>
+      </button>
+      <button class="tier-btn" data-tier="street" title="Jarak Sangat Dekat (~ 250 m)">
+        <i data-lucide="footprints"></i>
+        <span class="tier-text">Jalanan</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Map Control Overlay (Kanan Atas / Tengah Kanan) -->
+  <div class="map-floating-controls">
+    <button id="zoom-in-btn" class="tool-btn" title="Perbesar (Zoom In)">
+      <i data-lucide="plus"></i>
+    </button>
+    <button id="zoom-out-btn" class="tool-btn" title="Perkecil (Zoom Out)">
+      <i data-lucide="minus"></i>
+    </button>
+    <div class="tool-divider"></div>
+    <button id="tilt-toggle-btn" class="tool-btn" title="Kemiringan Perspektif 3D (Tilt)">
+      <i data-lucide="mountain"></i>
+    </button>
+    <button id="reset-north-btn" class="tool-btn" title="Arahkan ke Utara (Reset Kompas)">
+      <i data-lucide="compass"></i>
+    </button>
+    <div class="tool-divider"></div>
+    <button id="measure-btn" class="tool-btn" title="Alat Ukur Jarak Antar Titik">
+      <i data-lucide="ruler"></i>
+    </button>
+    <button id="fullscreen-btn" class="tool-btn" title="Layar Penuh (Fullscreen)">
+      <i data-lucide="maximize"></i>
+    </button>
+  </div>
+
+  <!-- Live Flight HUD Indicator (Kiri Bawah) -->
+  <footer class="flight-hud">
+    <div class="hud-main">
+      <div class="hud-altitude-badge">
+        <i data-lucide="plane-takeoff"></i>
+        <div class="hud-alt-texts">
+          <span class="hud-alt-label">Ketinggian Penglihatan</span>
+          <span id="hud-altitude-val" class="hud-alt-number">12.500 km</span>
+          <span id="hud-tier-badge" class="hud-tier-tag">Orbit Antariksa</span>
+        </div>
+      </div>
+
+      <div class="hud-metrics">
+        <div class="hud-metric-item">
+          <span class="metric-title">Koordinat</span>
+          <span id="hud-coords-val" class="metric-val">-6.1754°, 106.8272°</span>
+        </div>
+        <div class="hud-metric-item">
+          <span class="metric-title">Sudut Kamera</span>
+          <span id="hud-pitch-val" class="metric-val">Kemiringan 0° | Arah 0°</span>
+        </div>
+        <div class="hud-metric-item" id="measurement-hud" style="display: none;">
+          <span class="metric-title">Jarak Ukur</span>
+          <span id="measurement-val" class="metric-val text-accent">0 km</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Tooltip / Helper Hint -->
+    <div class="hud-hint">
+      <i data-lucide="info"></i>
+      <span>Geser peta untuk memutar bumi | Scroll mouse untuk zoom masuk/keluar | Klik kanan + drag untuk memiringkan perspektif 3D</span>
+    </div>
+  </footer>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Measure Mode Bar (Muncul saat mode ukur aktif) -->
+  <div id="measure-banner" class="measure-banner hidden">
+    <i data-lucide="ruler"></i>
+    <span>Mode Pengukur Jarak: Klik titik pertama dan titik kedua di bumi untuk mengukur jarak.</span>
+    <button id="clear-measure-btn" class="btn-sm">Hapus Ukuran</button>
+    <button id="close-measure-btn" class="btn-sm btn-ghost">Tutup</button>
+  </div>
+
+  <!-- Main JavaScript Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
