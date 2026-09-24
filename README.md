@@ -11,6 +11,8 @@
 
 Dilengkapi juga dengan pemantau bencana alam dunia real-time (**USGS Live Earthquakes Feed**), visualisasi **Cincin Api Pasifik (Ring of Fire)**, dan katalog bencana bersejarah terdahsyat di muka bumi.
 
+🔗 **Live Web Demo:** [https://yonatan123-a11.github.io/TerraSphere-3D-Interactive-Map/](https://yonatan123-a11.github.io/TerraSphere-3D-Interactive-Map/)
+
 ---
 
 ## ✨ Fitur Utama
@@ -29,7 +31,13 @@ Dilengkapi juga dengan pemantau bencana alam dunia real-time (**USGS Live Earthq
   - 👣 **Jalanan** (~ 250 m): Tingkat jalan raya, perumahan, dan atap gedung.
 - **Katalog Destinasi Siap Terbang**: Monas Jakarta, Bundaran HI, Ka'bah Makkah, Menara Eiffel Paris, Piramida Giza Mesir, Burj Khalifa Dubai, Puncak Mount Everest, Colosseum Roma, Grand Canyon, Raja Ampat, dll.
 
-### 3. 🚨 Pusat Pemantau Bencana Alam Dunia (Disaster Monitor)
+### 3. 🎯 Navigasi Klik Lokasi & Geolokasi GPS (Terbaru)
+- **Klik Bebas pada Permukaan Bumi (Click-to-Direct)**: Cukup klik di titik mana saja di bola bumi untuk memutar bumi dan menerbangkan kamera secara sinematik (*flyTo*) tepat ke lokasi tersebut.
+- **Efek Riak Berdenyut (*Ripple Pulse*)**: Titik yang diklik akan memunculkan penanda target bercahaya dengan animasi riak.
+- **Deteksi Tempat Otomatis (*Reverse Geocoding*)**: Menampilkan nama daerah, kota, atau samudra yang diklik beserta opsi tombol "Jarak Dekat" dan "Luar Angkasa".
+- **Tombol "Lokasi Saya" (GPS Navigation)**: Satu klik pada tombol target bidik di panel kanan untuk mendeteksi posisi perangkat Anda dan menerbangkan kamera langsung ke lokasi Anda saat ini.
+
+### 4. 🚨 Pusat Pemantau Bencana Alam Dunia (Disaster Monitor)
 - **💥 Gempa Terkini Real-Time (USGS Feed)**: Terhubung langsung dengan seismometer global USGS, memetakan 100+ titik gempa aktif minggu ini secara real-time dengan lingkaran berpendar dinamis sesuai magnitudo.
 - **🌋 Jalur Cincin Api Pasifik (Pacific Ring of Fire)**: Visualisasi zona subduksi lempeng tektonik aktif tempat 90% gempa bumi dan 75% gunung api aktif dunia berada.
 - **🌊 Jejak Bencana Bersejarah Terdahsyat**:
@@ -44,14 +52,14 @@ Dilengkapi juga dengan pemantau bencana alam dunia real-time (**USGS Live Earthq
   - Badai Siklon Katrina (2005) & Siklon Nargis (2008)
 - **Tombol Transisi Jarak pada Bencana**: Beralih instan antara **Jarak Dekat (~500m)** untuk melihat kawah/patahan dan **Jarak Jauh (Orbit)** untuk melihat skala lempeng benua.
 
-### 4. 🗺️ Multi-Lapisan Citra (Layer Switcher)
+### 5. 🗺️ Multi-Lapisan Citra (Layer Switcher)
 - **Satelit HD Realistis** (Esri World Imagery)
 - **Peta Jalan (OpenStreetMap)**
 - **Mode Malam (Dark Universe)**
 - **Relief Topografi & Kontur Pegunungan**
 - Toggle label nama kota dan jaringan jalanan.
 
-### 5. 🛠️ Alat Interaktif & Flight HUD
+### 6. 🛠️ Alat Interaktif & Flight HUD
 - **Pencarian Lokasi Global**: Live geocoding OpenStreetMap Nominatim dengan animasi terbang sinematik (*flyTo*).
 - **Pengukur Jarak (Distance Ruler)**: Menghitung jarak garis lurus di permukaan bumi via rumus Haversine (km/meter).
 - **Live Flight HUD**: Indikator ketinggian kamera dinamis (*apparent altitude*), koordinat Lintang/Bujur, sudut kemiringan 3D (*Tilt*), dan arah kompas (*Bearing*).
