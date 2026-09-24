@@ -920,6 +920,44 @@ document.addEventListener('DOMContentLoaded', () => {
     map.resetNorth({ duration: 800 });
   });
 
+  const myLocationBtn = document.getElementById('my-location-btn');
+  if (myLocationBtn) {
+    myLocationBtn.addEventListener('click', () => {
+      if ('geolocation' in navigator) {
+        showToast('Mencari posisi perangkat Anda (GPS)...');
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lng = pos.coords.longitude;
+            const lat = pos.coords.latitude;
+
+            if (state.autoSpin) {
+              state.userInteracting = true;
+              clearTimeout(resumeSpinTimeout);
+            }
+
+            map.flyTo({
+              center: [lng, lat],
+              zoom: 15.5,
+              pitch: 50,
+              speed: 1.2,
+              curve: 1.3,
+              essential: true
+            });
+
+            handleTargetLocationClick(lng, lat, 'Lokasi Anda Saat Ini', 'Berdasarkan sensor GPS perangkat Anda');
+            showToast('Kamera terarah ke lokasi Anda saat ini!');
+          },
+          (err) => {
+            showToast('Gagal mengakses GPS: ' + err.message);
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } else {
+        showToast('Browser Anda tidak mendukung deteksi lokasi GPS.');
+      }
+    });
+  }
+
   const fullscreenBtn = document.getElementById('fullscreen-btn');
   fullscreenBtn.addEventListener('click', () => {
     if (!document.fullscreenElement) {
@@ -1151,11 +1189,124 @@ document.addEventListener('DOMContentLoaded', () => {
   clearMeasureBtn.addEventListener('click', clearMeasurement);
   closeMeasureBtn.addEventListener('click', () => toggleMeasureMode(false));
 
+  // Variabel marker dan popup penanda klik lokasi
+  let activeClickMarker = null;
+  let activeClickPopup = null;
+
+  async function handleTargetLocationClick(lng, lat, customTitle, customSub) {
+    // Hapus marker & popup sebelumnya jika ada
+    if (activeClickMarker) {
+      activeClickMarker.remove();
+      activeClickMarker = null;
+    }
+    if (activeClickPopup) {
+      activeClickPopup.remove();
+      activeClickPopup = null;
+    }
+
+    // Buat elemen penanda target berdenyut (ripple pulse)
+    const markerEl = document.createElement('div');
+    markerEl.className = 'click-target-pin';
+    activeClickMarker = new maplibregl.Marker({ element: markerEl })
+      .setLngLat([lng, lat])
+      .addTo(map);
+
+    const latDir = lat >= 0 ? 'LU' : 'LS';
+    const lngDir = lng >= 0 ? 'BT' : 'BB';
+    const coordsFormatted = `${Math.abs(lat).toFixed(4)}° ${latDir}, ${Math.abs(lng).toFixed(4)}° ${lngDir}`;
+
+    let title = customTitle || 'Memuat nama tempat...';
+    let subtitle = customSub || coordsFormatted;
+
+    // Tampilkan popup awal
+    activeClickPopup = new maplibregl.Popup({ offset: 18, maxWidth: '320px' })
+      .setLngLat([lng, lat])
+      .setHTML(`
+        <div class="click-popup-content">
+          <h4 id="click-pop-title">${title}</h4>
+          <div class="popup-sub" id="click-pop-sub">${subtitle}</div>
+          <div class="popup-coords">📍 Koordinat: ${coordsFormatted}</div>
+          <div class="disaster-popup-actions">
+            <button class="btn-popup-zoom" onclick="window.flyToLocation(${lng}, ${lat}, 16.5, 55)">Jarak Dekat (~500m)</button>
+            <button class="btn-popup-orbit" onclick="window.flyToLocation(${lng}, ${lat}, 1.5, 0)">Luar Angkasa</button>
+          </div>
+        </div>
+      `)
+      .addTo(map);
+
+    // Reverse Geocoding otomatis jika tidak ada customTitle
+    if (!customTitle) {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`, {
+          headers: { 'Accept-Language': 'id,en' }
+        });
+        const data = await res.json();
+        if (data && data.display_name) {
+          const parts = data.display_name.split(',');
+          const mainTitle = parts[0];
+          const subTitle = parts.slice(1, 3).join(',').trim();
+
+          const titleEl = document.getElementById('click-pop-title');
+          const subEl = document.getElementById('click-pop-sub');
+          if (titleEl) titleEl.textContent = mainTitle;
+          if (subEl) subEl.textContent = subTitle || data.type;
+        } else {
+          const titleEl = document.getElementById('click-pop-title');
+          if (titleEl) titleEl.textContent = 'Wilayah Samudra / Terpencil';
+        }
+      } catch (err) {
+        const titleEl = document.getElementById('click-pop-title');
+        if (titleEl) titleEl.textContent = 'Titik Koordinat Terpilih';
+      }
+    }
+  }
+
+  // Handler klik pada peta: Mengarahkan kamera langsung ke lokasi yang dipencet
   map.on('click', (e) => {
-    if (!state.isMeasuring) return;
-    const coords = [e.lngLat.lng, e.lngLat.lat];
-    state.measurePoints.push(coords);
-    updateMeasureGeoJSON();
+    // Jika mode pengukur jarak sedang aktif
+    if (state.isMeasuring) {
+      const coords = [e.lngLat.lng, e.lngLat.lat];
+      state.measurePoints.push(coords);
+      updateMeasureGeoJSON();
+      return;
+    }
+
+    // Jika mengklik titik gempa bumi USGS, biarkan handler gempa yang memprosesnya
+    const features = map.queryRenderedFeatures(e.point, {
+      layers: ['usgs-quakes-core']
+    });
+    if (features && features.length > 0) return;
+
+    const lng = e.lngLat.lng;
+    const lat = e.lngLat.lat;
+    const currentZoom = map.getZoom();
+
+    // Tentukan zoom target yang presisi dan nyaman
+    let targetZoom = currentZoom;
+    if (currentZoom < 3.2) {
+      targetZoom = 5.2; // Dari orbit luar angkasa menukik ke skala negara/wilayah
+    } else if (currentZoom < 9.0) {
+      targetZoom = currentZoom + 2.0;
+    }
+
+    // Jeda putaran bumi sementara agar lokasi terpantau jelas
+    if (state.autoSpin) {
+      state.userInteracting = true;
+      clearTimeout(resumeSpinTimeout);
+    }
+
+    // Terbang dan arahkan kamera tepat ke lokasi yang dipencet
+    map.flyTo({
+      center: [lng, lat],
+      zoom: targetZoom,
+      speed: 1.2,
+      curve: 1.3,
+      essential: true
+    });
+
+    // Tampilkan penanda target dan kartu informasi tempat
+    handleTargetLocationClick(lng, lat);
+    showToast('Kamera terarah ke lokasi yang dipencet!');
   });
 
   // =========================================================================

@@ -1152,6 +1152,54 @@ body, html {
   color: #fff;
 }
 
+/* Clicked Target Location Marker & Popup */
+.click-target-pin {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #00f2fe;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 20px #00f2fe;
+  position: relative;
+  cursor: pointer;
+}
+.click-target-pin::after {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  right: -9px;
+  bottom: -9px;
+  border-radius: 50%;
+  border: 2px solid #00f2fe;
+  animation: ripple-pulse 1.8s infinite ease-out;
+}
+@keyframes ripple-pulse {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+.click-popup-content h4 {
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  margin-bottom: 4px;
+}
+.click-popup-content .popup-sub {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+.click-popup-content .popup-coords {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #cbd5e1;
+  margin-bottom: 10px;
+}
+
 /* Utility */
 .hidden {
   display: none !important;
